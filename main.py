@@ -92,13 +92,27 @@ def PSNR_RGB(u, g):
 
 
 if __name__ == "__main__":
+    D = Grid(50, 100)
+
+    V = [0.] * D.size()
+    V[D.getIndex(10, 10)] = 1.
+
+    V = D.explicitEuler(V, 5.0, 0.01)[-1]
+
+    D.reloadValues(V)
+
+    D.showValues()
+    D.showDerivatives()
+
+if False and __name__ == "__main__":
     print("I.1")
     print("Classe Grid")
 
     D = Grid(3, 4)
     assert D.x == [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]
     assert D.y == [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]
-    assert D.index == {(0, 0): 0, (0, 1): 1, (0, 2): 2, (0, 3): 3, (1, 0): 4, (1, 1): 5, (1, 2): 6, (1, 3): 7, (2, 0): 8, (2, 1): 9, (2, 2): 10, (2, 3): 11}
+    assert D.index == {(0, 0): 0, (0, 1): 1, (0, 2): 2, (0, 3): 3, (1, 0): 4, (1, 1): 5, (1, 2): 6,
+                       (1, 3): 7, (2, 0): 8, (2, 1): 9, (2, 2): 10, (2, 3): 11}
 
     ##################################################
 
@@ -187,14 +201,14 @@ if __name__ == "__main__":
             best_t = t
 
         cpt += 1
-        print("\rCalcul en cours,", int(cpt*100 / len(xVals)), "%", end="")
+        print("\rCalcul en cours,", int(cpt * 100 / len(xVals)), "%", end="")
     print()
 
     ax = plt.subplot()
     ax.plot(xVals, yPSNR, color="red")
     plt.show()
 
-    print("Meilleur T :", int(best_t*1000)/1000, "s")
+    print("Meilleur T :", int(best_t * 1000) / 1000, "s")
 
     plt.imshow(diffuseImageRGB(imgNoisy, best_t))
     plt.show()

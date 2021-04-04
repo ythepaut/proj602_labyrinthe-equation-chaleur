@@ -6,6 +6,8 @@ import numpy as np
 import scipy.sparse as sparse
 import scipy.sparse.linalg as linalg
 import typing
+import matplotlib.pyplot as plt
+import math
 
 
 class Grid:
@@ -15,6 +17,8 @@ class Grid:
 
     x: typing.List[int]
     y: typing.List[int]
+    values: typing.List[float]
+    derivatives: typing.List[typing.Tuple[float, float]]
     index: typing.Dict[typing.Tuple[int, int], int]
     nbCols: int
     nbRows: int
@@ -31,6 +35,8 @@ class Grid:
 
         self.x = [j for _ in range(self.nbRows) for j in range(self.nbCols)]
         self.y = [i for i in range(self.nbRows) for _ in range(self.nbCols)]
+        self.values = [0. for _ in range(self.nbRows) for _ in range(self.nbCols)]
+        self.derivatives = [(0., 0.) for _ in range(self.nbRows) for _ in range(self.nbCols)]
         self.index = {}
 
         for y in range(self.nbRows):
@@ -222,3 +228,52 @@ class Grid:
                 Uk = Uk1
 
             return res
+
+    def showValues(self):
+        res: np.matrix = np.asmatrix(np.zeros((self.nbRows, self.nbCols)))
+
+        for row in range(self.nbRows):
+            for col in range(self.nbCols):
+                res[row, col] = self.values[self.getIndex(row, col)]
+
+        plt.imshow(res)
+        plt.show()
+
+    def showDerivatives(self):
+        res: np.matrix = np.asmatrix(np.zeros((self.nbRows, self.nbCols)))
+
+        for row in range(self.nbRows):
+            for col in range(self.nbCols):
+                idx = self.getIndex(row, col)
+                if self.derivatives[idx] == (0., 0.):
+                    res[row, col] = 0.
+                else:
+                    x, y = self.derivatives[idx]
+                    res[row, col] = np.angle(complex(x, y)) + np.pi
+
+                if col < 25:
+                    print(res[row, col])
+
+        plt.imshow(res, cmap="hsv")
+        plt.show()
+
+    def reloadValues(self, V: np.matrix):
+        # Update values with "Euler-ed" matrix
+        for row in range(self.nbRows):
+            for col in range(self.nbCols):
+                idx = self.getIndex(row, col)
+                self.values[idx] = V[idx]
+
+        # Derivative
+        for row in range(self.nbRows):
+            for col in range(self.nbCols):
+                idx = self.getIndex(row, col)
+                idx_xm1 = self.getIndex(row-1, col) if row != 0 else idx
+                idx_xp1 = self.getIndex(row+1, col) if row != self.nbRows-1 else idx
+                idx_yp1 = self.getIndex(row, col+1) if row != self.nbCols-1 else idx
+                idx_ym1 = self.getIndex(row, col-1) if col != 0 else idx
+
+                dx = (self.values[idx_xp1] - self.values[idx_xm1]) / 2
+                dy = (self.values[idx_yp1] - self.values[idx_ym1]) / 2
+
+                self.derivatives[idx] = (dx, dy)
