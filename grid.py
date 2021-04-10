@@ -43,14 +43,20 @@ class Grid:
             for x in range(self.nbCols):
                 self.index[(y, x)] = x + y * self.nbCols
 
-    def getIndex(self, row: int, col: int) -> int:
+    def getIndex(self, row: int, col: int) -> typing.Optional[int]:
         """
         :param row: Ligne
         :param col: Colonne
         :return: Index associé
         """
 
-        return self.index.get((row, col), -1)
+        return self.index.get((row, col), None)
+
+    def unset(self, row: int, col: int):
+        if (row, col) in self.index:
+            self.index.pop((row, col))
+        else:
+            print("err")
 
     def neighbors(self, idx: int) -> typing.List[int]:
         """
@@ -64,12 +70,12 @@ class Grid:
 
         for dx in (-1, 1):
             idx = self.getIndex(y, x + dx)
-            if idx != -1:
+            if idx is not None:
                 N.append(idx)
 
         for dy in (-1, 1):
             idx = self.getIndex(y + dy, x)
-            if idx != -1:
+            if idx is not None:
                 N.append(idx)
 
         return N
@@ -172,11 +178,17 @@ class Grid:
 
         return values
 
-    def explicitEuler(self, U: typing.List[float], T: float, dt: float) -> typing.List[np.matrix]:
+    def explicitEuler(self,
+                      U: typing.List[float],
+                      T: float,
+                      dt: float,
+                      dirichlet: bool = True) \
+            -> typing.List[np.matrix]:
         """
         :param U: Matrice
         :param T: T
         :param dt: Delta t
+        :param dirichlet: Laplacien Dirichlet ou Neumann
         :return: Liste des matrices à chaque intervalle delta t
         """
 
@@ -184,7 +196,11 @@ class Grid:
         t = 0
         Uk = U
         m_id = self.Identity()
-        m_lap = self.Laplacian()
+
+        if dirichlet:
+            m_lap = self.LaplacianD()
+        else:
+            m_lap = self.Laplacian()
 
         while t < T:
             Uk1 = (m_id + dt * m_lap) * Uk
@@ -231,12 +247,17 @@ class Grid:
 
     def showValues(self):
         res: np.matrix = np.asmatrix(np.zeros((self.nbRows, self.nbCols)))
+        values: typing.List[float] = self.values[:]
+        values.sort()
+
+        maxi = values[-1]
 
         for row in range(self.nbRows):
             for col in range(self.nbCols):
-                res[row, col] = self.values[self.getIndex(row, col)]
+                idx = self.getIndex(row, col)
+                res[row, col] = self.values[idx] / maxi if idx is not None else -0.15
 
-        plt.imshow(res)
+        plt.imshow(res, cmap="magma")
         plt.show()
 
     def showDerivatives(self):
@@ -245,16 +266,15 @@ class Grid:
         for row in range(self.nbRows):
             for col in range(self.nbCols):
                 idx = self.getIndex(row, col)
-                if self.derivatives[idx] == (0., 0.):
+                if idx is None:
+                    res[row, col] = 0.
+                elif self.derivatives[idx] == (0., 0.):
                     res[row, col] = 0.
                 else:
                     x, y = self.derivatives[idx]
-                    res[row, col] = np.angle(complex(x, y)) + np.pi
+                    res[row, col] = np.angle([complex(x, y)])[0]
 
-                if col < 25:
-                    print(res[row, col])
-
-        plt.imshow(res, cmap="hsv")
+        plt.imshow(res, cmap="twilight")
         plt.show()
 
     def reloadValues(self, V: np.matrix):
@@ -262,18 +282,40 @@ class Grid:
         for row in range(self.nbRows):
             for col in range(self.nbCols):
                 idx = self.getIndex(row, col)
-                self.values[idx] = V[idx]
+                if idx is not None:
+                    self.values[idx] = V[idx]
 
         # Derivative
         for row in range(self.nbRows):
             for col in range(self.nbCols):
                 idx = self.getIndex(row, col)
-                idx_xm1 = self.getIndex(row-1, col) if row != 0 else idx
-                idx_xp1 = self.getIndex(row+1, col) if row != self.nbRows-1 else idx
-                idx_yp1 = self.getIndex(row, col+1) if row != self.nbCols-1 else idx
-                idx_ym1 = self.getIndex(row, col-1) if col != 0 else idx
+                if idx is None:
+                    continue
 
-                dx = (self.values[idx_xp1] - self.values[idx_xm1]) / 2
-                dy = (self.values[idx_yp1] - self.values[idx_ym1]) / 2
+                idx_xm1 = self.getIndex(row-1, col)
+                idx_xp1 = self.getIndex(row+1, col)
+                idx_yp1 = self.getIndex(row, col+1)
+                idx_ym1 = self.getIndex(row, col-1)
 
-                self.derivatives[idx] = (dx, dy)
+                dx = 0.
+                dy = 0.
+
+                if idx_xm1 is not None:
+                    dx += - self.values[idx_xm1] + self.values[idx]
+
+                if idx_xp1 is not None:
+                    dx += - self.values[idx] + self.values[idx_xp1]
+
+                if idx_yp1 is not None:
+                    dy += - self.values[idx_yp1] + self.values[idx]
+
+                if idx_ym1 is not None:
+                    dy += - self.values[idx] + self.values[idx_ym1]
+
+                if (dx, dy) == (0., 0.):
+                    self.derivatives[idx] = (0., 0.)
+                else:
+                    alpha = np.angle([complex(dx, dy)])[0]
+                    self.derivatives[idx] = (-math.sin(alpha), math.cos(alpha))
+                    # NOTE: I'm not sure if we should take the "true" derivative or its orthogonal
+                    #       vector, so I used the orthogonal one, pointing toward the origin

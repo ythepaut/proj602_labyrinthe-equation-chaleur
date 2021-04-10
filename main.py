@@ -94,6 +94,24 @@ def PSNR_RGB(u, g):
 if __name__ == "__main__":
     D = Grid(50, 100)
 
+    """
+    for i in range(10):
+        for j in range(20):
+            D.unset(20 + i, 30 + j)
+    """
+
+    """
+    for i in range(-5, 5):
+        for j in range(-5, 5):
+            if i*i + j*j < 25:
+                D.unset(20 + i, 70 + j)
+    """
+
+    for i in range(5):
+        for j in range(20):
+            D.unset(20 + i, 30 + j)
+            D.unset(20 + j, 30 + i)
+
     V = [0.] * D.size()
     V[D.getIndex(10, 10)] = 1.
 
