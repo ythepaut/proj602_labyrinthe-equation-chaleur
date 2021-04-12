@@ -3,10 +3,12 @@ Grille
 """
 
 import numpy as np
+from scipy.sparse import *
 import scipy.sparse as sparse
 import scipy.sparse.linalg as linalg
-import typing
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+import typing
 import math
 
 
@@ -55,8 +57,6 @@ class Grid:
     def unset(self, row: int, col: int):
         if (row, col) in self.index:
             self.index.pop((row, col))
-        else:
-            print("err")
 
     def neighbors(self, idx: int) -> typing.List[int]:
         """
@@ -251,11 +251,19 @@ class Grid:
         values.sort()
 
         maxi = values[-1]
+        mini = math.log([x for x in values if x != 0][0])
 
         for row in range(self.nbRows):
             for col in range(self.nbCols):
                 idx = self.getIndex(row, col)
-                res[row, col] = self.values[idx] / maxi if idx is not None else -0.15
+                if idx is None:
+                    res[row, col] = mini
+                else:
+                    value = self.values[idx] / maxi
+                    if value == 0:
+                        res[row, col] = mini
+                    else:
+                        res[row, col] = math.log(value)
 
         plt.imshow(res, cmap="magma")
         plt.show()
@@ -319,3 +327,83 @@ class Grid:
                     self.derivatives[idx] = (-math.sin(alpha), math.cos(alpha))
                     # NOTE: I'm not sure if we should take the "true" derivative or its orthogonal
                     #       vector, so I used the orthogonal one, pointing toward the origin
+
+
+def EQM(u: np.matrix, g: np.matrix) -> float:
+    res = 0.
+
+    for row in range(u.shape[0]):
+        for col in range(u.shape[1]):
+            res += abs(u[row, col] - g[row, col]) ** 2
+
+    res /= (u.shape[0] * u.shape[1])
+    return res
+
+
+def PSNR_RGB(u, g):
+    eqm = 0.
+    for i in range(3):
+        eqm += EQM(u[:, :, i], g[:, :, i])
+    eqm /= 3.
+
+    v = 0.
+    for row in range(u.shape[0]):
+        for col in range(u.shape[1]):
+            for i in range(3):
+                if u[row, col, i] > v:
+                    v = u[row, col, i]
+
+                if g[row, col, i] > v:
+                    v = g[row, col, i]
+
+    if eqm == 0.:
+        return math.inf
+    else:
+        return 10 * math.log(v ** 2 / eqm, 10)
+
+def show(M: csc_matrix) -> None:
+    res: np.matrix = np.asmatrix(np.zeros(M.shape))
+
+    for row in range(res.shape[0]):
+        for col in range(res.shape[1]):
+            res[row, col] = M[row, col]
+
+    plt.imshow(res)
+    plt.show()
+
+
+def showGif(mats: typing.List[np.matrix]) -> None:
+    fig = plt.figure()
+
+    imgs = []
+    for mat in mats:
+        imgs.append([plt.imshow(D.vectorToImage(mat), cmap="hot", vmin=0.0, vmax=1.0)])
+
+    ani = animation.ArtistAnimation(fig, imgs, interval=50, blit=False, repeat_delay=0)
+    # writer = animation.PillowWriter(fps=20)
+    # ani.save("II-1-diffusion.gif", writer=writer)
+    plt.show()
+
+
+def diffuseImageRGB(img, T, verbose=True):
+    r = img[:, :, 0]
+    g = img[:, :, 1]
+    b = img[:, :, 2]
+    D = Grid(*r.shape)
+    res = img.copy()
+
+    if verbose:
+        print("Diffusion RGB: ", end='')
+
+    for i in range(3):
+        if verbose:
+            print("RGB"[i] + "...", end='')
+
+        vect = D.imageToVector((r, g, b)[i])
+        frame = D.implicitEuler(vect, T, None)
+        res[:, :, i] = D.vectorToImage(frame)
+
+    if verbose:
+        print("OK")
+
+    return res
