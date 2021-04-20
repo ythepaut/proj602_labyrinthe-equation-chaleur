@@ -1,6 +1,5 @@
 import numpy as np
-import pygame
-import pygame.gfxdraw
+import tkinter as tk
 import matplotlib
 import matplotlib.cm
 import typing
@@ -11,10 +10,15 @@ from grid import Grid
 
 
 class Simulation:
+    FRAMERATE: int = 60
     SPEED: float = 5.
+    RADIUS: int = 5
 
-    clock: pygame.time.Clock = pygame.time.Clock()
-    window: pygame
+    window: tk.Tk
+    canvas: tk.Canvas
+
+    ovalId: typing.Optional[int] = None
+    imageId: typing.Optional[int] = None
 
     posX: float = 0.
     posY: float = 0.
@@ -29,22 +33,24 @@ class Simulation:
 
     cmap: typing.Any
 
-    background: typing.Dict
+    background: tk.PhotoImage
 
     @classmethod
     def run(cls, grid: Grid, ratio: float):
-        pygame.init()
-
         cls.grid = grid
 
         cls.width = int(grid.nbCols * ratio)
         cls.height = int(grid.nbRows * ratio)
+        cls.ratio = ratio
 
-        cls.window = pygame.display.set_mode((cls.width, cls.height))
+        cls.window = tk.Tk()
+        cls.canvas = tk.Canvas(cls.window, bg="white", width=cls.width, height=cls.height)
 
         cls.cmap = matplotlib.cm.get_cmap("twilight")
 
-        cls.background = {(r, c): 0 for r in range(grid.nbRows) for c in range(grid.nbCols)}
+        print("Création de l'image")
+
+        cls.background = tk.PhotoImage(width=cls.width, height=cls.height)
         for col in range(grid.nbCols):
             for row in range(grid.nbRows):
                 idx = grid.getIndex(row, col)
@@ -56,33 +62,64 @@ class Simulation:
                     r, g, b, a = cls.cmap(angle / 360.)
                     color = (int(r * 255), int(g * 255), int(b * 255))
 
-                cls.background[(row, col)] = color
+                pos = (col, row)
+                cls.background.put("#%02x%02x%02x" % tuple(color), pos)
 
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+        print("Zoom de l'image")
 
-            for col in range(grid.nbCols):
-                for row in range(grid.nbRows):
-                    rect = pygame.Rect((col * ratio, row * ratio), (ratio, ratio))
-                    pygame.draw.rect(cls.window, cls.background[(row, col)], rect)
+        cls.background = cls.background.zoom(ratio, ratio)
 
-            pygame.gfxdraw.filled_circle(cls.window, int(cls.posX), int(cls.posY), 5, (255, 0, 0))
+        cls.canvas.bind("<Button-1>", cls.onClick)
 
-            if pygame.mouse.get_pressed()[0]:
-                cls.posX, cls.posY = pygame.mouse.get_pos()
-                cls.speedX = cls.speedY = 0
-                cls.speedX = (random.randint(0, 100) - 50) / 100
-                cls.speedY = (random.randint(0, 100) - 50) / 100
+        print("Affichage")
 
-            cls.moveDot()
+        cls.onClick(None)
 
-            pygame.display.flip()
-            cls.clock.tick(60)
+        cls.canvas.pack()
+        cls.update()
+        cls.window.mainloop()
 
-        pygame.quit()
+    @classmethod
+    def onClick(cls, evt: typing.Optional):
+        if evt is None:
+            r = c = 0
+
+            for i in range(100):
+                r, c = random.randrange(cls.grid.nbRows), random.randrange(cls.grid.nbCols)
+
+                if cls.grid.getIndex(r, c) is not None:
+                    break
+
+            cls.posX = (c / cls.grid.nbCols) * cls.width
+            cls.posY = (r / cls.grid.nbRows) * cls.height
+        else:
+            cls.posX, cls.posY = evt.x, evt.y
+
+        cls.speedX = cls.speedY = 0
+        alpha = random.randrange(int(math.pi * 100)) / 100
+        cls.speedY, cls.speedX = math.sin(alpha), math.cos(alpha)
+
+    @classmethod
+    def update(cls):
+        cls.moveDot()
+
+        if cls.imageId is not None:
+            cls.canvas.delete(cls.imageId)
+
+        cls.imageId = cls.canvas.create_image(0, 0, image=cls.background, anchor=tk.NW)
+
+        if cls.ovalId is not None:
+            cls.canvas.delete(cls.ovalId)
+
+        cls.ovalId = cls.canvas.create_oval(
+            cls.posX - cls.RADIUS,
+            cls.posY - cls.RADIUS,
+            cls.posX + cls.RADIUS,
+            cls.posY + cls.RADIUS,
+            fill="blue"
+        )
+
+        cls.window.after(math.ceil(1000. / cls.FRAMERATE), cls.update)
 
     @classmethod
     def moveDot(cls):
