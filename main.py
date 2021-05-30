@@ -1,55 +1,97 @@
+import argparse
+import json
+import typing
+
 from grid import Grid
+from settings import Settings
 from simulation import Simulation
 
 
-THICKNESS = 15
-ZOOM = 6
-EULER_TIME = 16.
+def init() -> typing.Tuple[typing.List[str], Settings]:
+    """
+    Init
+    :return: Labyrinth and settings
+    """
 
-START_TOKEN = '@'
-END_TOKEN = '#'
+    argParser = argparse.ArgumentParser(description="Équation de la chaleur")
+    argParser.add_argument("-s", "--settings", type=str, default="./settings.json", help="Settings path")
+    argParser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
+    opt, _ = argParser.parse_known_args()
 
-labyrinth = [
-    "@  * *   ",
-    " * * * * ",
-    " * *   * ",
-    " * * *** ",
-    " *   *   ",
-    "** * * **",
-    "   * * * ",
-    " ***** * ",
-    "     * @ ",
-]
+    try:
+        f = open(opt.settings, 'r')
+        settingsDict = json.load(f)
+        f.close()
+    except (OSError, json.JSONDecodeError):
+        settingsDict = {}
 
-if __name__ == "__main__":
-    print("Création de la grille")
+    tokens = settingsDict.get("tokens", {})
+    thickness = settingsDict.get("thickness", 5)
+    labyrinth = settingsDict.get("labyrinth", [" "])
 
-    G = Grid(len(labyrinth) * THICKNESS, len(labyrinth[0]) * THICKNESS)
+    zoom = settingsDict.get("zoom", None)
+    if zoom is None:
+        zoom = int(0.75 * 1080 / (thickness * len(labyrinth))) + 1
+
+    settings = Settings(
+        tokens.get("wall", ["*"]),
+        tokens.get("start", ["@"]),
+        tokens.get("empty", [" "]),
+        thickness,
+        zoom,
+        settingsDict.get("eulerTime", 16.),
+        opt.verbose
+    )
+
+    return labyrinth, settings
+
+
+def main():
+    labyrinth, settings = init()
+
+    if settings.verbose:
+        print("Création de la grille")
+
+    maxLength = 0
+    for row in labyrinth:
+        if len(row) > maxLength:
+            maxLength = len(row)
+
+    G = Grid(len(labyrinth) * settings.thickness, maxLength * settings.thickness)
     V = [0.] * G.size()
 
-    print("Remplissage de la grille")
+    if settings.verbose:
+        print("Remplissage de la grille")
 
     for row in range(len(labyrinth)):
         for col in range(len(labyrinth[row])):
-            if labyrinth[row][col] in (' ', END_TOKEN):
+            cell = labyrinth[row][col]
+            if cell in settings.holeTokens:
                 continue
-            elif labyrinth[row][col] == START_TOKEN:
-                idx = G.getIndex(row * THICKNESS + THICKNESS // 2, col * THICKNESS + THICKNESS // 2)
+            elif labyrinth[row][col] in settings.startTokens:
+                idx = G.getIndex(row * settings.thickness + settings.thickness // 2,
+                                 col * settings.thickness + settings.thickness // 2)
                 V[idx] = 1.
-            else:
-                for i in range(THICKNESS):
-                    for j in range(THICKNESS):
-                        G.unset(row * THICKNESS + i, col * THICKNESS + j)
+            elif cell in settings.wallTokens:
+                for i in range(settings.thickness):
+                    for j in range(settings.thickness):
+                        G.unset(row * settings.thickness + i, col * settings.thickness + j)
 
-    print("Calcul de Euler")
+    if settings.verbose:
+        print("Calcul de Euler")
 
-    V = G.explicitEuler(V, EULER_TIME, 0.01, True)[-1]
+    V = G.explicitEuler(V, settings.eulerTime, 0.01, True)[-1]
 
-    print("Calcul des dérivées")
+    if settings.verbose:
+        print("Calcul des dérivées")
 
     G.reloadValues(V)
 
     G.showValues()
     G.showDerivatives()
 
-    Simulation.run(G, ZOOM)
+    Simulation.run(G, settings.zoom, settings)
+
+
+if __name__ == "__main__":
+    main()

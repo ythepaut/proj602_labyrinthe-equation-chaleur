@@ -7,6 +7,7 @@ import math
 import random
 
 from grid import Grid
+from settings import Settings
 
 
 class Simulation:
@@ -36,7 +37,7 @@ class Simulation:
     background: tk.PhotoImage
 
     @classmethod
-    def run(cls, grid: Grid, ratio: float):
+    def run(cls, grid: Grid, ratio: float, settings: Settings):
         cls.grid = grid
 
         cls.width = int(grid.nbCols * ratio)
@@ -48,7 +49,8 @@ class Simulation:
 
         cls.cmap = matplotlib.cm.get_cmap("twilight")
 
-        print("Création de l'image")
+        if settings.verbose:
+            print("Création de l'image")
 
         cls.background = tk.PhotoImage(width=cls.width, height=cls.height)
         for col in range(grid.nbCols):
@@ -65,13 +67,15 @@ class Simulation:
                 pos = (col, row)
                 cls.background.put("#%02x%02x%02x" % tuple(color), pos)
 
-        print("Zoom de l'image")
+        if settings.verbose:
+            print("Zoom de l'image")
 
         cls.background = cls.background.zoom(ratio, ratio)
 
         cls.canvas.bind("<Button-1>", cls.onClick)
 
-        print("Affichage")
+        if settings.verbose:
+            print("Affichage")
 
         cls.onClick(None)
 
