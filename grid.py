@@ -251,7 +251,13 @@ class Grid:
         values.sort()
 
         maxi = values[-1]
-        mini = math.log([x for x in values if x != 0][0])
+
+        nonNullList = [x for x in values if x != 0]
+
+        if len(nonNullList) == 0:
+            mini = -100
+        else:
+            mini = math.log(nonNullList[0])
 
         for row in range(self.nbRows):
             for col in range(self.nbCols):
