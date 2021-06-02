@@ -306,10 +306,10 @@ class Grid:
                 if idx is None:
                     continue
 
-                idx_xm1 = self.getIndex(row-1, col)
-                idx_xp1 = self.getIndex(row+1, col)
-                idx_yp1 = self.getIndex(row, col+1)
-                idx_ym1 = self.getIndex(row, col-1)
+                idx_xm1 = self.getIndex(row - 1, col)
+                idx_xp1 = self.getIndex(row + 1, col)
+                idx_yp1 = self.getIndex(row, col + 1)
+                idx_ym1 = self.getIndex(row, col - 1)
 
                 dx = 0.
                 dy = 0.
@@ -366,6 +366,7 @@ def PSNR_RGB(u, g):
         return math.inf
     else:
         return 10 * math.log(v ** 2 / eqm, 10)
+
 
 def show(M: csc_matrix) -> None:
     res: np.matrix = np.asmatrix(np.zeros(M.shape))

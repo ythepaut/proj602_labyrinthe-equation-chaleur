@@ -24,6 +24,12 @@ class Settings:
     # Euler time
     eulerTime: float
 
+    # Delta t
+    dt: float
+
+    # Simulation ball speed
+    ballSpeed: float
+
     # Verbose or quiet
     verbose: bool
 
@@ -34,6 +40,8 @@ class Settings:
                  thickness: int,
                  zoom: int,
                  eulerTime: float,
+                 dt: float,
+                 ballSpeed: float,
                  verbose: bool):
         self.wallTokens = wallTokens
         self.startTokens = startTokens
@@ -41,4 +49,6 @@ class Settings:
         self.thickness = thickness
         self.zoom = zoom
         self.eulerTime = eulerTime
+        self.dt = dt
+        self.ballSpeed = ballSpeed
         self.verbose = verbose

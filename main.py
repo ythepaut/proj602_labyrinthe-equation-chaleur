@@ -14,7 +14,7 @@ def init() -> typing.Tuple[typing.List[str], Settings]:
     """
 
     argParser = argparse.ArgumentParser(description="Équation de la chaleur")
-    argParser.add_argument("-s", "--settings", type=str, default="./settings.json", help="Settings path")
+    argParser.add_argument("-s", "--settings", type=str, default="./settings1.json", help="Settings path")
     argParser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     opt, _ = argParser.parse_known_args()
 
@@ -40,6 +40,8 @@ def init() -> typing.Tuple[typing.List[str], Settings]:
         thickness,
         zoom,
         settingsDict.get("eulerTime", 16.),
+        settingsDict.get("dt", 0.01),
+        settingsDict.get("ballSpeed", 5.),
         opt.verbose
     )
 
@@ -80,7 +82,7 @@ def main():
     if settings.verbose:
         print("Calcul de Euler")
 
-    V = G.explicitEuler(V, settings.eulerTime, 0.01, True)[-1]
+    V = G.explicitEuler(V, settings.eulerTime, settings.dt, True)[-1]
 
     if settings.verbose:
         print("Calcul des dérivées")
