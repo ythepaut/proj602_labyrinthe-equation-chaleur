@@ -30,6 +30,12 @@ class Settings:
     # Simulation ball speed
     ballSpeed: float
 
+    # Animate heat progression or not
+    animate: bool
+
+    # Use Dirichlet or Neumann
+    dirichlet: bool
+
     # Verbose or quiet
     verbose: bool
 
@@ -42,6 +48,8 @@ class Settings:
                  eulerTime: float,
                  dt: float,
                  ballSpeed: float,
+                 animate: bool,
+                 dirichlet: bool,
                  verbose: bool):
         self.wallTokens = wallTokens
         self.startTokens = startTokens
@@ -51,4 +59,6 @@ class Settings:
         self.eulerTime = eulerTime
         self.dt = dt
         self.ballSpeed = ballSpeed
+        self.animate = animate
+        self.dirichlet = dirichlet
         self.verbose = verbose

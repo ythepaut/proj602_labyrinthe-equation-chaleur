@@ -16,6 +16,8 @@ def init() -> typing.Tuple[typing.List[str], Settings]:
     argParser = argparse.ArgumentParser(description="Équation de la chaleur")
     argParser.add_argument("-s", "--settings", type=str, default="./settings1.json", help="Settings path")
     argParser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
+    argParser.add_argument("-a", "--animate", action="store_true", help="Animate heat progression")
+    argParser.add_argument("-d", "--dirichlet", action="store_true", help="Use Dirichlet laplacian")
     opt, _ = argParser.parse_known_args()
 
     f = open(opt.settings, 'r')
@@ -39,6 +41,8 @@ def init() -> typing.Tuple[typing.List[str], Settings]:
         settingsDict.get("eulerTime", 16.),
         settingsDict.get("dt", 0.01),
         settingsDict.get("ballSpeed", 5.),
+        opt.animate,
+        opt.dirichlet,
         opt.verbose
     )
 
@@ -79,13 +83,13 @@ def main():
     if settings.verbose:
         print("Calcul de Euler")
 
-    useGif = False  # FIXME: Move to config
-    useDirichlet = True  # FIXME: Move to config
+    useGif = settings.animate
+    useDirichlet = settings.dirichlet
     V, arr = G.explicitEuler(V, settings.eulerTime, settings.dt, useDirichlet, useGif)
 
     if useGif:
         if settings.verbose:
-            print("export du GIF")
+            print("Export du GIF")
 
         G.showGif(arr)
 
