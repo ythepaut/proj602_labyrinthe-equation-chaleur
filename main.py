@@ -18,12 +18,9 @@ def init() -> typing.Tuple[typing.List[str], Settings]:
     argParser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     opt, _ = argParser.parse_known_args()
 
-    try:
-        f = open(opt.settings, 'r')
-        settingsDict = json.load(f)
-        f.close()
-    except (OSError, json.JSONDecodeError):
-        settingsDict = {}
+    f = open(opt.settings, 'r')
+    settingsDict = json.load(f)
+    f.close()
 
     tokens = settingsDict.get("tokens", {})
     thickness = settingsDict.get("thickness", 5)
@@ -82,7 +79,7 @@ def main():
     if settings.verbose:
         print("Calcul de Euler")
 
-    V = G.explicitEuler(V, settings.eulerTime, settings.dt, True)[-1]
+    V = G.explicitEuler(V, settings.eulerTime, settings.dt, True)
 
     if settings.verbose:
         print("Calcul des dérivées")

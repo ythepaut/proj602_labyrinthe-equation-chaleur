@@ -192,7 +192,6 @@ class Grid:
         :return: Liste des matrices à chaque intervalle delta t
         """
 
-        res = [U]
         t = 0
         Uk = U
         m_id = self.Identity()
@@ -203,12 +202,10 @@ class Grid:
             m_lap = self.Laplacian()
 
         while t < T:
-            Uk1 = (m_id + dt * m_lap) * Uk
+            Uk = (m_id + dt * m_lap) * Uk
             t += dt
-            res.append(Uk1)
-            Uk = Uk1
 
-        return res
+        return Uk
 
     def implicitEuler(self,
                       U: typing.List[float],
