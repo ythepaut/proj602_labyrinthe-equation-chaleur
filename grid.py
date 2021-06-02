@@ -248,23 +248,23 @@ class Grid:
         values.sort()
 
         maxi = values[-1]
+        maxi_log = math.log(maxi)
 
-        nonNullList = [x for x in values if x != 0]
-
-        if len(nonNullList) == 0:
-            mini = -100
-        else:
-            mini = math.log(nonNullList[0])
+        mini = -100
+        for x in values:
+            if x != 0.:
+                mini = math.log(x)
+                break  # We're sorted so we can break
 
         for row in range(self.nbRows):
             for col in range(self.nbCols):
                 idx = self.getIndex(row, col)
                 if idx is None:
-                    res[row, col] = mini
+                    res[row, col] = (mini - maxi_log) * 1.1
                 else:
                     value = self.values[idx] / maxi
                     if value == 0:
-                        res[row, col] = mini
+                        res[row, col] = (mini - maxi_log) * 1.1
                     else:
                         res[row, col] = math.log(value)
 

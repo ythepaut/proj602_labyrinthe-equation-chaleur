@@ -70,7 +70,7 @@ def main():
             elif labyrinth[row][col] in settings.startTokens:
                 idx = G.getIndex(row * settings.thickness + settings.thickness // 2,
                                  col * settings.thickness + settings.thickness // 2)
-                V[idx] = 1.
+                V[idx] = 1e308
             elif cell in settings.wallTokens:
                 for i in range(settings.thickness):
                     for j in range(settings.thickness):
