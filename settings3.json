@@ -24,6 +24,6 @@
     "thickness": 10,
     "zoom": 9,
     "eulerTime": 16.0,
-    "dt": 0.01,
+    "dt": 0.1,
     "ballSpeed": 5.0
 }

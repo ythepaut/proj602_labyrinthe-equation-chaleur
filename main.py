@@ -79,7 +79,15 @@ def main():
     if settings.verbose:
         print("Calcul de Euler")
 
-    V = G.explicitEuler(V, settings.eulerTime, settings.dt, True)
+    useGif = False  # FIXME: Move to config
+    useDirichlet = True  # FIXME: Move to config
+    V, arr = G.explicitEuler(V, settings.eulerTime, settings.dt, useDirichlet, useGif)
+
+    if useGif:
+        if settings.verbose:
+            print("export du GIF")
+
+        G.showGif(arr)
 
     if settings.verbose:
         print("Calcul des dérivées")

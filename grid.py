@@ -150,18 +150,51 @@ class Grid:
         M = sparse.coo_matrix((V, (R, C)), shape=(self.size(), self.size()))
         return M.tocsc()
 
-    def vectorToImage(self, V: np.matrix) -> np.matrix:
+    def vectorToImage(self, V: np.matrix, raw: bool = True) \
+            -> typing.Tuple[np.matrix, float, float]:
         """
         :param V: Matrice vecteur
         :return: Matrice image
+        :param raw: Raw or processed
         """
 
         img = np.zeros((self.nbRows, self.nbCols))
         K = self.index.keys()
         I = self.index.values()
+
+        mini = None
+        maxi = None
+
+        if not raw:
+            for _, idx in zip(K, I):
+                if V[idx] != 0:
+                    if mini is None or mini > V[idx]:
+                        mini = V[idx]
+
+                    if maxi is None or maxi < V[idx]:
+                        maxi = V[idx]
+
+            if mini is None:
+                mini = 0.
+            else:
+                mini = math.log(mini)
+
+            if maxi is None:
+                maxi = 100.
+            else:
+                maxi = math.log(maxi)
+
         for k, idx in zip(K, I):
-            img[k[0], k[1]] = V[idx]
-        return np.asmatrix(img)
+            if raw:
+                img[k[0], k[1]] = V[idx]
+            else:
+                if V[idx] == 0.:
+                    log = mini
+                else:
+                    log = math.log(V[idx])
+                img[k[0], k[1]] = log
+
+        return np.asmatrix(img), mini, maxi
 
     @staticmethod
     def imageToVector(img: np.matrix) -> typing.List[int]:
@@ -182,15 +215,22 @@ class Grid:
                       U: typing.List[float],
                       T: float,
                       dt: float,
-                      dirichlet: bool = True) \
-            -> typing.List[np.matrix]:
+                      dirichlet: bool,
+                      outputList: bool) \
+            -> typing.Tuple[np.matrix, typing.List[np.matrix]]:
         """
         :param U: Matrice
         :param T: T
         :param dt: Delta t
         :param dirichlet: Laplacien Dirichlet ou Neumann
+        :param outputList: Outputs a list or not
         :return: Liste des matrices à chaque intervalle delta t
         """
+
+        if outputList:
+            arr = [U]
+        else:
+            arr = []
 
         t = 0
         Uk = U
@@ -202,10 +242,15 @@ class Grid:
             m_lap = self.Laplacian()
 
         while t < T:
-            Uk = (m_id + dt * m_lap) * Uk
+            Uk1 = (m_id + dt * m_lap) * Uk
             t += dt
 
-        return Uk
+            if outputList:
+                arr.append(Uk1)
+
+            Uk = Uk1
+
+        return Uk, arr
 
     def implicitEuler(self,
                       U: typing.List[float],
@@ -331,6 +376,19 @@ class Grid:
                     # NOTE: I'm not sure if we should take the "true" derivative or its orthogonal
                     #       vector, so I used the orthogonal one, pointing toward the origin
 
+    def showGif(self, mats: typing.List[np.matrix]) -> None:
+        fig = plt.figure()
+
+        imgs = []
+
+        for mat in mats:
+            values, mini, maxi = self.vectorToImage(mat, False)
+            imgs.append([plt.imshow(values, cmap="hot", vmin=mini, vmax=maxi)])
+
+        ani = animation.ArtistAnimation(fig, imgs, interval=50, blit=False, repeat_delay=0)
+        writer = animation.PillowWriter(fps=20)
+        ani.save("chaleur.gif", writer=writer)
+
 
 def EQM(u: np.matrix, g: np.matrix) -> float:
     res = 0.
@@ -373,19 +431,6 @@ def show(M: csc_matrix) -> None:
             res[row, col] = M[row, col]
 
     plt.imshow(res)
-    plt.show()
-
-
-def showGif(mats: typing.List[np.matrix]) -> None:
-    fig = plt.figure()
-
-    imgs = []
-    for mat in mats:
-        imgs.append([plt.imshow(D.vectorToImage(mat), cmap="hot", vmin=0.0, vmax=1.0)])
-
-    ani = animation.ArtistAnimation(fig, imgs, interval=50, blit=False, repeat_delay=0)
-    # writer = animation.PillowWriter(fps=20)
-    # ani.save("II-1-diffusion.gif", writer=writer)
     plt.show()
 
 
