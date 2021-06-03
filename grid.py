@@ -189,12 +189,14 @@ class Grid:
                 img[k[0], k[1]] = V[idx]
             else:
                 if V[idx] == 0.:
-                    log = mini
+                    log = 0
+                    # Because walls are set to 0, we must not have any negative number,
+                    #  else they will start to glow as if they were hot
                 else:
-                    log = math.log(V[idx])
+                    log = math.log(V[idx]) - mini
                 img[k[0], k[1]] = log
 
-        return np.asmatrix(img), mini, maxi
+        return np.asmatrix(img), 0, maxi - mini
 
     @staticmethod
     def imageToVector(img: np.matrix) -> typing.List[int]:
